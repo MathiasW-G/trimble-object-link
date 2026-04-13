@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
-  <title>Trimble Connect – Objektlink</title>
+  <title>Trimble Connect – Objekt test</title>
 
   <style>
     html, body {
@@ -10,33 +10,27 @@
       padding: 0;
       height: 100%;
       font-family: Segoe UI, Arial, sans-serif;
-      background: #f4f6f8;
     }
 
     #toolbar {
-      height: 44px;
+      height: 42px;
       background: #ffffff;
       border-bottom: 1px solid #ddd;
       display: flex;
       align-items: center;
-      padding: 0 14px;
-      gap: 16px;
+      padding: 0 12px;
+      gap: 12px;
       box-sizing: border-box;
     }
 
-    #title {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
     #status {
-      font-size: 12px;
-      color: #666;
+      font-size: 13px;
+      color: #444;
     }
 
     #viewer {
       width: 100%;
-      height: calc(100% - 44px);
+      height: calc(100% - 42px);
       border: none;
     }
   </style>
@@ -45,8 +39,8 @@
 <body>
 
   <div id="toolbar">
-    <div id="title">Trimble Connect – Objektvisning</div>
-    <div id="status">Starter…</div>
+    <strong>Trimble objekt‑test</strong>
+    <span id="status">Starter …</span>
   </div>
 
   <iframe
@@ -55,22 +49,62 @@
     allow="fullscreen"
   ></iframe>
 
-  <!-- Workspace API (offisiell) -->
+  <!-- Offisiell Workspace API -->
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
 
   <script>
-    const MODEL_ID = "Fxm58C9I4R4";
+    // 🔴 Hardkodet test‑entityId
+    const TEST_ENTITY_ID = "0ozi9d6o1FjBovSWg$Ydi8";
 
     async function init() {
-      const statusEl = document.getElementById("status");
-      const iframe   = document.getElementById("viewer");
-
-      const params   = new URLSearchParams(window.location.search);
-      const entityId = params.get("entityId");
-
-      statusEl.textContent = "Kobler til Trimble Connect…";
+      const status = document.getElementById("status");
+      const iframe = document.getElementById("viewer");
 
       try {
+        status.textContent = "Kobler til Trimble Connect …";
+
         const api = await WorkspaceAPI.connect(iframe);
 
-        statusEl.textContent = entityId
+        status.textContent = "Venter på at modellen lastes …";
+
+        // ✅ KRITISK: vent til modellen er ferdig lastet
+        await api.viewer.whenModelLoaded();
+
+        status.textContent = "Finner objekt …";
+
+        const objectIds = await api.viewer.convertToObjectIds({
+          entityIds: [TEST_ENTITY_ID]
+        });
+
+        if (!objectIds || objectIds.length === 0) {
+          status.textContent = "❌ Objekt ikke funnet i modellen";
+          console.warn("Fant ikke runtime‑ID for", TEST_ENTITY_ID);
+          return;
+        }
+
+        status.textContent = "Velger og zoomer …";
+
+        // ✅ Velg objekt
+        await api.viewer.setObjects({
+          objectIds,
+          mode: "set"
+        });
+
+        // ✅ Zoom kamera
+        await api.viewer.fitObjects({
+          objectIds
+        });
+
+        status.textContent = "✅ Objekt valgt og zoomet";
+
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Feil under lasting";
+      }
+    }
+
+    window.addEventListener("load", init);
+  </script>
+
+</body>
+</html>
