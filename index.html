@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
-  <title>Trimble Connect – Objekt test</title>
+  <title>Trimble Connect – Objektlink</title>
 
   <style>
     html, body {
@@ -10,6 +10,7 @@
       padding: 0;
       height: 100%;
       font-family: Segoe UI, Arial, sans-serif;
+      background: #f4f6f8;
     }
 
     #toolbar {
@@ -19,8 +20,13 @@
       display: flex;
       align-items: center;
       padding: 0 12px;
-      gap: 12px;
       box-sizing: border-box;
+      gap: 12px;
+    }
+
+    #title {
+      font-weight: 600;
+      font-size: 14px;
     }
 
     #status {
@@ -39,76 +45,81 @@
 <body>
 
   <div id="toolbar">
-    <strong>Trimble objekt‑test</strong>
-    <span id="status">Starter …</span>
+    <div id="title">Trimble objekt‑test</div>
+    <div id="status">Starter…</div>
   </div>
 
+  <!-- Trimble Connect viewer -->
   <iframe
     id="viewer"
     src="https://web.connect.trimble.com/projects/53tq6e0UmJQ/viewer/3d/?modelId=Fxm58C9I4R4"
     allow="fullscreen"
   ></iframe>
 
-  <!-- Offisiell Workspace API -->
-  <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
+  <!-- Workspace API (offisiell) -->
+  <script src="https://components.connect trimble.com/trimble-connect-workspace-api/index.js"></script>
 
- <script>
-  const TEST_ENTITY_ID = "0ozi9d6o1FjBovSWg$Ydi8";
+  <script>
+    // ✅ Hardkodet test‑objekt (bekreftet gyldig)
+    const TEST_ENTITY_ID = "0ozi9d6o1FjBovSWg$Ydi8";
+    let hasZoomed = false;
 
-  async function init() {
-    const status = document.getElementById("status");
-    const iframe = document.getElementById("viewer");
+    async function init() {
+      const statusEl = document.getElementById("status");
+      const iframe   = document.getElementById("viewer");
 
-    try {
-      status.textContent = "Kobler til Trimble…";
+      try {
+        statusEl.textContent = "Kobler til Trimble…";
 
-      const api = await WorkspaceAPI.connect(iframe);
+        const api = await WorkspaceAPI.connect(iframe);
 
-      status.textContent = "Venter på viewer…";
+        statusEl.textContent = "Venter på viewer…";
 
-      // ✅ Vent på første viewer-event som indikerer at scene finnes
-      api.viewer.addEventListener("sceneChanged", async () => {
-        try {
-          status.textContent = "Finner objekt…";
+        // ✅ Riktig trigger i web‑viewer
+        api.viewer.addEventListener("sceneChanged", async () => {
+          if (hasZoomed) return;
+          hasZoomed = true;
 
-          const objectIds = await api.viewer.convertToObjectIds({
-            entityIds: [TEST_ENTITY_ID]
-          });
+          try {
+            statusEl.textContent = "Finner objekt…";
 
-          if (!objectIds || objectIds.length === 0) {
-            status.textContent = "❌ Objekt ikke funnet";
-            console.warn("Fant ikke objekt:", TEST_ENTITY_ID);
-            return;
+            const objectIds = await api.viewer.convertToObjectIds({
+              entityIds: [TEST_ENTITY_ID]
+            });
+
+            if (!objectIds || objectIds.length === 0) {
+              statusEl.textContent = "❌ Objekt ikke funnet i modellen";
+              console.warn("Fant ikke objekt:", TEST_ENTITY_ID);
+              return;
+            }
+
+            statusEl.textContent = "Zoomer til objekt…";
+
+            await api.viewer.setObjects({
+              objectIds,
+              mode: "set"
+            });
+
+            await api.viewer.fitObjects({
+              objectIds
+            });
+
+            statusEl.textContent = "✅ Objekt valgt og zoomet";
+
+          } catch (err) {
+            console.error(err);
+            statusEl.textContent = "❌ Feil under zoom";
           }
+        });
 
-          status.textContent = "Zoomer til objekt…";
-
-          await api.viewer.setObjects({
-            objectIds,
-            mode: "set"
-          });
-
-          await api.viewer.fitObjects({
-            objectIds
-          });
-
-          status.textContent = "✅ Objekt valgt og zoomet";
-
-        } catch (err) {
-          console.error(err);
-          status.textContent = "❌ Feil under zoom";
-        }
-      });
-
-    } catch (err) {
-      console.error(err);
-      status.textContent = "❌ Feil ved lasting av viewer";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Feil ved lasting av viewer";
+      }
     }
-  }
 
-  window.addEventListener("load", init);
-</script>
-
+    window.addEventListener("load", init);
+  </script>
 
 </body>
 </html>
