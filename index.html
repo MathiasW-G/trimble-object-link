@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trimble Connect – Objektlink</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Segoe UI, Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    #toolbar {
+      height: 44px;
+      background: #ffffff;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 16px;
+      box-sizing: border-box;
+    }
+
+    #title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #status {
+      font-size: 12px;
+      color: #666;
+    }
+
+    #viewer {
+      width: 100%;
+      height: calc(100% - 44px);
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="toolbar">
+    <div id="title">Trimble Connect – Objektvisning</div>
+    <div id="status">Starter…</div>
+  </div>
+
+  <iframe
+    id="viewer"
+    src="https://web.connect.trimble.com/projects/53tq6e0UmJQ/viewer/3d/?modelId=Fxm58C9I4R4"
+    allow="fullscreen"
+  ></iframe>
+
+  <!-- Workspace API (offisiell) -->
+  <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
+
+  <script>
+    const MODEL_ID = "Fxm58C9I4R4";
+
+    async function init() {
+      const statusEl = document.getElementById("status");
+      const iframe   = document.getElementById("viewer");
+
+      const params   = new URLSearchParams(window.location.search);
+      const entityId = params.get("entityId");
+
+      statusEl.textContent = "Kobler til Trimble Connect…";
+
+      try {
+        const api = await WorkspaceAPI.connect(iframe);
+
+        statusEl.textContent = entityId
