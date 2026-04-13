@@ -52,59 +52,63 @@
   <!-- Offisiell Workspace API -->
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
 
-  <script>
-    // 🔴 Hardkodet test‑entityId
-    const TEST_ENTITY_ID = "0ozi9d6o1FjBovSWg$Ydi8";
+ <script>
+  const TEST_ENTITY_ID = "0ozi9d6o1FjBovSWg$Ydi8";
 
-    async function init() {
-      const status = document.getElementById("status");
-      const iframe = document.getElementById("viewer");
+  async function init() {
+    const status = document.getElementById("status");
+    const iframe = document.getElementById("viewer");
 
-      try {
-        status.textContent = "Kobler til Trimble Connect …";
+    try {
+      status.textContent = "Kobler til Trimble…";
 
-        const api = await WorkspaceAPI.connect(iframe);
+      const api = await WorkspaceAPI.connect(iframe);
 
-        status.textContent = "Venter på at modellen lastes …";
+      status.textContent = "Venter på viewer…";
 
-        // ✅ KRITISK: vent til modellen er ferdig lastet
-        await api.viewer.whenModelLoaded();
+      // ✅ Vent på første viewer-event som indikerer at scene finnes
+      api.viewer.addEventListener("sceneChanged", async () => {
+        try {
+          status.textContent = "Finner objekt…";
 
-        status.textContent = "Finner objekt …";
+          const objectIds = await api.viewer.convertToObjectIds({
+            entityIds: [TEST_ENTITY_ID]
+          });
 
-        const objectIds = await api.viewer.convertToObjectIds({
-          entityIds: [TEST_ENTITY_ID]
-        });
+          if (!objectIds || objectIds.length === 0) {
+            status.textContent = "❌ Objekt ikke funnet";
+            console.warn("Fant ikke objekt:", TEST_ENTITY_ID);
+            return;
+          }
 
-        if (!objectIds || objectIds.length === 0) {
-          status.textContent = "❌ Objekt ikke funnet i modellen";
-          console.warn("Fant ikke runtime‑ID for", TEST_ENTITY_ID);
-          return;
+          status.textContent = "Zoomer til objekt…";
+
+          await api.viewer.setObjects({
+            objectIds,
+            mode: "set"
+          });
+
+          await api.viewer.fitObjects({
+            objectIds
+          });
+
+          status.textContent = "✅ Objekt valgt og zoomet";
+
+        } catch (err) {
+          console.error(err);
+          status.textContent = "❌ Feil under zoom";
         }
+      });
 
-        status.textContent = "Velger og zoomer …";
-
-        // ✅ Velg objekt
-        await api.viewer.setObjects({
-          objectIds,
-          mode: "set"
-        });
-
-        // ✅ Zoom kamera
-        await api.viewer.fitObjects({
-          objectIds
-        });
-
-        status.textContent = "✅ Objekt valgt og zoomet";
-
-      } catch (err) {
-        console.error(err);
-        status.textContent = "❌ Feil under lasting";
-      }
+    } catch (err) {
+      console.error(err);
+      status.textContent = "❌ Feil ved lasting av viewer";
     }
+  }
 
-    window.addEventListener("load", init);
-  </script>
+  window.addEventListener("load", init);
+</script>
+
 
 </body>
 </html>
